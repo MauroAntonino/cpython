@@ -57,6 +57,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
     """
 
     def __init__(self, selector=None):
+        logger.warning("__init__ SELECTOR")
         super().__init__()
 
         if selector is None:
@@ -68,6 +69,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
 
     def _make_socket_transport(self, sock, protocol, waiter=None, *,
                                extra=None, server=None):
+        logger.warning("_make_socket_transport SELECTOR")
         self._ensure_fd_no_transport(sock)
         return _SelectorSocketTransport(self, sock, protocol, waiter,
                                         extra, server)
@@ -79,6 +81,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
             ssl_handshake_timeout=constants.SSL_HANDSHAKE_TIMEOUT,
             ssl_shutdown_timeout=constants.SSL_SHUTDOWN_TIMEOUT,
     ):
+        logger.warning("_make_ssl_transport SELECTOR")
         self._ensure_fd_no_transport(rawsock)
         ssl_protocol = sslproto.SSLProtocol(
             self, protocol, sslcontext, waiter,
@@ -92,11 +95,13 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
 
     def _make_datagram_transport(self, sock, protocol,
                                  address=None, waiter=None, extra=None):
+        logger.warning("_make_datagram_transport SELECTOR")
         self._ensure_fd_no_transport(sock)
         return _SelectorDatagramTransport(self, sock, protocol,
                                           address, waiter, extra)
 
     def close(self):
+        logger.warning("close SELECTOR")
         if self.is_running():
             raise RuntimeError("Cannot close a running event loop")
         if self.is_closed():
@@ -108,6 +113,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
             self._selector = None
 
     def _close_self_pipe(self):
+        logger.warning("_close_self_pipe SELECTOR")
         self._remove_reader(self._ssock.fileno())
         self._ssock.close()
         self._ssock = None
@@ -116,6 +122,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         self._internal_fds -= 1
 
     def _make_self_pipe(self):
+        logger.warning("_make_self_pipe SELECTOR")
         # A self-socket, really. :-)
         self._ssock, self._csock = socket.socketpair()
         self._ssock.setblocking(False)
@@ -124,12 +131,16 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         self._add_reader(self._ssock.fileno(), self._read_from_self)
 
     def _process_self_data(self, data):
+        logger.warning("_process_self_data SELECTOR")
         pass
 
     def _read_from_self(self):
+        logger.warning("_read_from_self SELECTOR")
         while True:
             try:
                 data = self._ssock.recv(4096)
+                logger.warning(data)
+                logger.warning("receiving data from self SELECTOR")
                 if not data:
                     break
                 self._process_self_data(data)
@@ -144,6 +155,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         # running.  Guard for self._csock being None or closed.  When
         # a socket is closed, send() raises OSError (with errno set to
         # EBADF, but let's not rely on the exact error code).
+        logger.warning("_write_to_self SELECTOR")
         csock = self._csock
         if csock is None:
             return
@@ -160,6 +172,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
                        sslcontext=None, server=None, backlog=100,
                        ssl_handshake_timeout=constants.SSL_HANDSHAKE_TIMEOUT,
                        ssl_shutdown_timeout=constants.SSL_SHUTDOWN_TIMEOUT):
+        logger.warning("_start_serving SELECTOR")
         self._add_reader(sock.fileno(), self._accept_connection,
                          protocol_factory, sock, sslcontext, server, backlog,
                          ssl_handshake_timeout, ssl_shutdown_timeout)
@@ -169,6 +182,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
             sslcontext=None, server=None, backlog=100,
             ssl_handshake_timeout=constants.SSL_HANDSHAKE_TIMEOUT,
             ssl_shutdown_timeout=constants.SSL_SHUTDOWN_TIMEOUT):
+        logger.warning("_accept_connection SELECTOR")
         # This method is only called once for each event loop tick where the
         # listening socket has triggered an EVENT_READ. There may be multiple
         # connections waiting for an .accept() so it is called in a loop.
@@ -215,6 +229,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
             sslcontext=None, server=None,
             ssl_handshake_timeout=constants.SSL_HANDSHAKE_TIMEOUT,
             ssl_shutdown_timeout=constants.SSL_SHUTDOWN_TIMEOUT):
+        logger.warning("_accept_connection2 SELECTOR")
         protocol = None
         transport = None
         try:
@@ -258,6 +273,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
                 self.call_exception_handler(context)
 
     def _ensure_fd_no_transport(self, fd):
+        logger.warning("_ensure_fd_no_transport SELECTOR")
         fileno = fd
         if not isinstance(fileno, int):
             try:
@@ -272,6 +288,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
                 f'{transport!r}')
 
     def _add_reader(self, fd, callback, *args):
+        logger.warning("_add_reader SELECTOR")
         self._check_closed()
         handle = events.Handle(callback, args, self, None)
         key = self._selector.get_map().get(fd)
@@ -287,6 +304,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         return handle
 
     def _remove_reader(self, fd):
+        logger.warning("_remove_reader SELECTOR")
         if self.is_closed():
             return False
         key = self._selector.get_map().get(fd)
@@ -306,6 +324,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
             return False
 
     def _add_writer(self, fd, callback, *args):
+        logger.warning("_add_writer SELECTOR")
         self._check_closed()
         handle = events.Handle(callback, args, self, None)
         key = self._selector.get_map().get(fd)
@@ -322,6 +341,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
 
     def _remove_writer(self, fd):
         """Remove a writer callback."""
+        logger.warning("_remove_writer SELECTOR")
         if self.is_closed():
             return False
         key = self._selector.get_map().get(fd)
@@ -343,21 +363,25 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
 
     def add_reader(self, fd, callback, *args):
         """Add a reader callback."""
+        logger.warning("add_reader SELECTOR")
         self._ensure_fd_no_transport(fd)
         self._add_reader(fd, callback, *args)
 
     def remove_reader(self, fd):
         """Remove a reader callback."""
+        logger.warning("remove_reader SELECTOR")
         self._ensure_fd_no_transport(fd)
         return self._remove_reader(fd)
 
     def add_writer(self, fd, callback, *args):
         """Add a writer callback.."""
+        logger.warning("add_writer SELECTOR")
         self._ensure_fd_no_transport(fd)
         self._add_writer(fd, callback, *args)
 
     def remove_writer(self, fd):
         """Remove a writer callback."""
+        logger.warning("remove_writer SELECTOR")
         self._ensure_fd_no_transport(fd)
         return self._remove_writer(fd)
 
@@ -368,6 +392,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         The maximum amount of data to be received at once is specified by
         nbytes.
         """
+        logger.warning("sock_recv SELECTOR")
         base_events._check_ssl_socket(sock)
         if self._debug and sock.gettimeout() != 0:
             raise ValueError("the socket must be non-blocking")
@@ -384,12 +409,14 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         return await fut
 
     def _sock_read_done(self, fd, fut, handle=None):
+        logger.warning("_sock_read_done SELECTOR")
         if handle is None or not handle.cancelled():
             self.remove_reader(fd)
 
     def _sock_recv(self, fut, sock, n):
         # _sock_recv() can add itself as an I/O callback if the operation can't
         # be done immediately. Don't use it directly, call sock_recv().
+        logger.warning("_sock_recv SELECTOR")
         if fut.done():
             return
         try:
@@ -409,6 +436,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         The received data is written into *buf* (a writable buffer).
         The return value is the number of bytes written.
         """
+        logger.warning("sock_recv_into SELECTOR")
         base_events._check_ssl_socket(sock)
         if self._debug and sock.gettimeout() != 0:
             raise ValueError("the socket must be non-blocking")
@@ -428,6 +456,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         # _sock_recv_into() can add itself as an I/O callback if the operation
         # can't be done immediately. Don't use it directly, call
         # sock_recv_into().
+        logger.warning("_sock_recv_into SELECTOR")
         if fut.done():
             return
         try:
@@ -449,6 +478,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         The maximum amount of data to be received at once is specified by
         nbytes.
         """
+        logger.warning("sock_recvfrom SELECTOR")
         base_events._check_ssl_socket(sock)
         if self._debug and sock.gettimeout() != 0:
             raise ValueError("the socket must be non-blocking")
@@ -468,6 +498,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         # _sock_recvfrom() can add itself as an I/O callback if the operation
         # can't be done immediately. Don't use it directly, call
         # sock_recvfrom().
+        logger.warning("_sock_recvfrom SELECTOR")
         if fut.done():
             return
         try:
@@ -487,6 +518,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         The received data is written into *buf* (a writable buffer).
         The return value is a tuple of (number of bytes written, address).
         """
+        logger.warning("sock_recvfrom_into SELECTOR")
         base_events._check_ssl_socket(sock)
         if self._debug and sock.gettimeout() != 0:
             raise ValueError("the socket must be non-blocking")
@@ -510,6 +542,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         # _sock_recv_into() can add itself as an I/O callback if the operation
         # can't be done immediately. Don't use it directly, call
         # sock_recv_into().
+        logger.warning("_sock_recvfrom_into SELECTOR")
         if fut.done():
             return
         try:
@@ -532,6 +565,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         raised, and there is no way to determine how much data, if any, was
         successfully processed by the receiving end of the connection.
         """
+        logger.warning("sock_sendall SELECTOR")
         base_events._check_ssl_socket(sock)
         if self._debug and sock.gettimeout() != 0:
             raise ValueError("the socket must be non-blocking")
@@ -555,6 +589,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         return await fut
 
     def _sock_sendall(self, fut, sock, view, pos):
+        logger.warning("_sock_sendall SELECTOR")
         if fut.done():
             # Future cancellation can be scheduled on previous loop iteration
             return
@@ -585,6 +620,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         raised, and there is no way to determine how much data, if any, was
         successfully processed by the receiving end of the connection.
         """
+        logger.warning("sock_sendto SELECTOR")
         base_events._check_ssl_socket(sock)
         if self._debug and sock.gettimeout() != 0:
             raise ValueError("the socket must be non-blocking")
@@ -604,6 +640,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         return await fut
 
     def _sock_sendto(self, fut, sock, data, address):
+        logger.warning("_sock_sendto SELECTOR")
         if fut.done():
             # Future cancellation can be scheduled on previous loop iteration
             return
@@ -623,6 +660,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
 
         This method is a coroutine.
         """
+        logger.warning("sock_connect SELECTOR")
         base_events._check_ssl_socket(sock)
         if self._debug and sock.gettimeout() != 0:
             raise ValueError("the socket must be non-blocking")
@@ -644,6 +682,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
             fut = None
 
     def _sock_connect(self, fut, sock, address):
+        logger.warning("_sock_connect SELECTOR")
         fd = sock.fileno()
         try:
             sock.connect(address)
@@ -667,10 +706,12 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
             fut = None
 
     def _sock_write_done(self, fd, fut, handle=None):
+        logger.warning("_sock_write_done SELECTOR")
         if handle is None or not handle.cancelled():
             self.remove_writer(fd)
 
     def _sock_connect_cb(self, fut, sock, address):
+        logger.warning("_sock_connect_cb SELECTOR")
         if fut.done():
             return
 
@@ -699,6 +740,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         object usable to send and receive data on the connection, and address
         is the address bound to the socket on the other end of the connection.
         """
+        logger.warning("sock_accept SELECTOR")
         base_events._check_ssl_socket(sock)
         if self._debug and sock.gettimeout() != 0:
             raise ValueError("the socket must be non-blocking")
@@ -707,11 +749,22 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
         return await fut
 
     def _sock_accept(self, fut, sock):
+        logger.warning("_sock_accept SELECTOR")
         fd = sock.fileno()
         try:
-            conn, address = sock.accept()
-            conn.setblocking(False)
-        except (BlockingIOError, InterruptedError):
+            logger.warning("conn")
+            logger.warning(hash(fut))
+            success = False
+            while not success:
+                try:
+                    conn, address = sock.accept()
+                    logger.warning("conn accept")
+                    conn.setblocking(False)
+                    success = True
+                except Exception as e:
+                    pass
+        except (BlockingIOError, InterruptedError) as e:
+            logger.warning(e)
             self._ensure_fd_no_transport(fd)
             handle = self._add_reader(fd, self._sock_accept, fut, sock)
             fut.add_done_callback(
@@ -724,6 +777,7 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
             fut.set_result((conn, address))
 
     async def _sendfile_native(self, transp, file, offset, count):
+        logger.warning("_sendfile_native SELECTOR")
         del self._transports[transp._sock_fd]
         resume_reading = transp.is_reading()
         transp.pause_reading()
@@ -738,20 +792,26 @@ class BaseSelectorEventLoop(base_events.BaseEventLoop):
             self._transports[transp._sock_fd] = transp
 
     def _process_events(self, event_list):
+        logger.warning("_process_events SELECTOR")
         for key, mask in event_list:
             fileobj, (reader, writer) = key.fileobj, key.data
+            logger.warning(mask & selectors.EVENT_READ and reader is not None)
             if mask & selectors.EVENT_READ and reader is not None:
+                logger.warning(reader._cancelled)
                 if reader._cancelled:
                     self._remove_reader(fileobj)
                 else:
                     self._add_callback(reader)
+            logger.warning(mask & selectors.EVENT_WRITE and writer is not None)
             if mask & selectors.EVENT_WRITE and writer is not None:
+                logger.warning(writer._cancelled)
                 if writer._cancelled:
                     self._remove_writer(fileobj)
                 else:
                     self._add_callback(writer)
 
     def _stop_serving(self, sock):
+        logger.warning("_stop_serving SELECTOR")
         self._remove_reader(sock.fileno())
         sock.close()
 

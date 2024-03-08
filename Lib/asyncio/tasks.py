@@ -26,6 +26,7 @@ from . import events
 from . import exceptions
 from . import futures
 from . import timeouts
+from .log import logger
 
 # Helper to generate new task names
 # This uses itertools.count() instead of a "+= 1" operation because the latter
@@ -752,6 +753,7 @@ def gather(*coros_or_futures, return_exceptions=False):
         return outer
 
     def _done_callback(fut):
+        logger.warning("_done_callback")
         nonlocal nfinished
         nfinished += 1
 
@@ -762,6 +764,9 @@ def gather(*coros_or_futures, return_exceptions=False):
             return
 
         if not return_exceptions:
+            logger.warning(dir(fut))
+            logger.warning(fut._state)
+            logger.warning(hash(fut))
             if fut.cancelled():
                 # Check if 'fut' is cancelled first, as
                 # 'fut.exception()' will *raise* a CancelledError
@@ -773,6 +778,8 @@ def gather(*coros_or_futures, return_exceptions=False):
                 exc = fut.exception()
                 if exc is not None:
                     outer.set_exception(exc)
+                    return
+                else:
                     return
 
         if nfinished == nfuts:
@@ -816,6 +823,7 @@ def gather(*coros_or_futures, return_exceptions=False):
     for arg in coros_or_futures:
         if arg not in arg_to_fut:
             fut = ensure_future(arg, loop=loop)
+            logger.warning(fut)
             if loop is None:
                 loop = futures._get_loop(fut)
             if fut is not arg:
@@ -835,7 +843,6 @@ def gather(*coros_or_futures, return_exceptions=False):
         else:
             # There's a duplicate Future object in coros_or_futures.
             fut = arg_to_fut[arg]
-
         children.append(fut)
 
     outer = _GatheringFuture(children, loop=loop)

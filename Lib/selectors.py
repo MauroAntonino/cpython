@@ -433,6 +433,11 @@ if hasattr(select, 'epoll'):
             return self._selector.fileno()
 
         def select(self, timeout=None):
+            import logging
+            # Name the logger after the package.
+            logger = logging.getLogger(__package__)
+            logger.setLevel(logging.DEBUG)
+            logger.warning("selector EPOLLSELECTOR")
             if timeout is None:
                 timeout = -1
             elif timeout <= 0:
@@ -449,8 +454,10 @@ if hasattr(select, 'epoll'):
 
             ready = []
             try:
+                logger.warning("waiting")
                 fd_event_list = self._selector.poll(timeout, max_ev)
             except InterruptedError:
+                logger.warning("except")
                 return ready
 
             fd_to_key = self._fd_to_key

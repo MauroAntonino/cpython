@@ -416,6 +416,10 @@ class Future(object):
                 cancelled then the callable will be called immediately. These
                 callables are called in the order that they were added.
         """
+        logger = logging.getLogger(__package__)
+        logger.setLevel(logging.DEBUG)
+        logger.warning("add_done_callback CONCURRENT FUTURES")
+        logger.warning(self._done_callbacks)
         with self._condition:
             if self._state not in [CANCELLED, CANCELLED_AND_NOTIFIED, FINISHED]:
                 self._done_callbacks.append(fn)

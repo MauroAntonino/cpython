@@ -62,11 +62,13 @@ class _UnixSelectorEventLoop(selector_events.BaseSelectorEventLoop):
     """
 
     def __init__(self, selector=None):
+        logger.warning("__init__ unix")
         super().__init__(selector)
         self._signal_handlers = {}
         self._unix_server_sockets = {}
 
     def close(self):
+        logger.warning("close connection unix")
         super().close()
         if not sys.is_finalizing():
             for sig in list(self._signal_handlers):
@@ -81,7 +83,11 @@ class _UnixSelectorEventLoop(selector_events.BaseSelectorEventLoop):
                 self._signal_handlers.clear()
 
     def _process_self_data(self, data):
+        logger.warning("_process_self_data unix")
+        logger.warning(data)
         for signum in data:
+            logger.warning(signum)
+            logger.warning(not signum)
             if not signum:
                 # ignore null bytes written by _write_to_self()
                 continue
@@ -93,6 +99,7 @@ class _UnixSelectorEventLoop(selector_events.BaseSelectorEventLoop):
         Raise ValueError if the signal number is invalid or uncatchable.
         Raise RuntimeError if there is a problem setting up the handler.
         """
+        logger.warning("add_signal_handler unix")
         if (coroutines.iscoroutine(callback) or
                 coroutines.iscoroutinefunction(callback)):
             raise TypeError("coroutines cannot be used "
@@ -134,6 +141,7 @@ class _UnixSelectorEventLoop(selector_events.BaseSelectorEventLoop):
 
     def _handle_signal(self, sig):
         """Internal helper that is the actual signal handler."""
+        logger.warning("_handle_signal unix")
         handle = self._signal_handlers.get(sig)
         if handle is None:
             return  # Assume it's some race condition.
@@ -147,6 +155,7 @@ class _UnixSelectorEventLoop(selector_events.BaseSelectorEventLoop):
 
         Return True if a signal handler was removed, False if not.
         """
+        logger.warning("remove_signal_handler unix")
         self._check_signal(sig)
         try:
             del self._signal_handlers[sig]
@@ -180,6 +189,7 @@ class _UnixSelectorEventLoop(selector_events.BaseSelectorEventLoop):
         Raise ValueError if the signal number is invalid or uncatchable.
         Raise RuntimeError if there is a problem setting up the handler.
         """
+        logger.warning("check_signal unix")
         if not isinstance(sig, int):
             raise TypeError(f'sig must be an int, not {sig!r}')
 
@@ -188,15 +198,18 @@ class _UnixSelectorEventLoop(selector_events.BaseSelectorEventLoop):
 
     def _make_read_pipe_transport(self, pipe, protocol, waiter=None,
                                   extra=None):
+        logger.warning("_make_read_pipe_transport unix")
         return _UnixReadPipeTransport(self, pipe, protocol, waiter, extra)
 
     def _make_write_pipe_transport(self, pipe, protocol, waiter=None,
                                    extra=None):
+        logger.warning("_make_write_pipe_transport unix")
         return _UnixWritePipeTransport(self, pipe, protocol, waiter, extra)
 
     async def _make_subprocess_transport(self, protocol, args, shell,
                                          stdin, stdout, stderr, bufsize,
                                          extra=None, **kwargs):
+        logger.warning("_make_subprocess_transport unix")
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', DeprecationWarning)
             watcher = events.get_child_watcher()
@@ -228,6 +241,7 @@ class _UnixSelectorEventLoop(selector_events.BaseSelectorEventLoop):
         return transp
 
     def _child_watcher_callback(self, pid, returncode, transp):
+        logger.warning("_child_watcher_callback unix")
         self.call_soon_threadsafe(transp._process_exited, returncode)
 
     async def create_unix_connection(
@@ -236,6 +250,7 @@ class _UnixSelectorEventLoop(selector_events.BaseSelectorEventLoop):
             server_hostname=None,
             ssl_handshake_timeout=None,
             ssl_shutdown_timeout=None):
+        logger.warning("create_unix_connection unix")
         assert server_hostname is None or isinstance(server_hostname, str)
         if ssl:
             if server_hostname is None:
@@ -286,6 +301,7 @@ class _UnixSelectorEventLoop(selector_events.BaseSelectorEventLoop):
             ssl_handshake_timeout=None,
             ssl_shutdown_timeout=None,
             start_serving=True, cleanup_socket=True):
+        logger.warning("create_unix_server unix")
         if isinstance(ssl, bool):
             raise TypeError('ssl argument must be an SSLContext or None')
 
@@ -363,6 +379,7 @@ class _UnixSelectorEventLoop(selector_events.BaseSelectorEventLoop):
         return server
 
     async def _sock_sendfile_native(self, sock, file, offset, count):
+        logger.warning("_sock_sendfile_native unix")
         try:
             os.sendfile
         except AttributeError:
@@ -387,6 +404,7 @@ class _UnixSelectorEventLoop(selector_events.BaseSelectorEventLoop):
 
     def _sock_sendfile_native_impl(self, fut, registered_fd, sock, fileno,
                                    offset, count, blocksize, total_sent):
+        logger.warning("_sock_sendfile_native_impl unix")
         fd = sock.fileno()
         if registered_fd is not None:
             # Remove the callback early.  It should be rare that the
@@ -459,10 +477,12 @@ class _UnixSelectorEventLoop(selector_events.BaseSelectorEventLoop):
                                 offset, count, blocksize, total_sent)
 
     def _sock_sendfile_update_filepos(self, fileno, offset, total_sent):
+        logger.warning("_sock_sendfile_update_filepos unix")
         if total_sent > 0:
             os.lseek(fileno, offset, os.SEEK_SET)
 
     def _sock_add_cancellation_callback(self, fut, sock):
+        logger.warning("_sock_add_cancellation_callback unix")
         def cb(fut):
             if fut.cancelled():
                 fd = sock.fileno()
@@ -471,6 +491,7 @@ class _UnixSelectorEventLoop(selector_events.BaseSelectorEventLoop):
         fut.add_done_callback(cb)
 
     def _stop_serving(self, sock):
+        logger.warning("_stop_serving unix")
         # Is this a unix socket that needs cleanup?
         if sock in self._unix_server_sockets:
             path = sock.getsockname()

@@ -664,6 +664,7 @@ class BaseEventLoop(events.AbstractEventLoop):
 
     def run_forever(self):
         """Run until stop() is called."""
+        logger.warning("run_forever BASE EVENTS")
         try:
             self._run_forever_setup()
             while True:
@@ -781,6 +782,7 @@ class BaseEventLoop(events.AbstractEventLoop):
         Any positional arguments after the callback will be passed to
         the callback when it is called.
         """
+        logger.warning("call_later BASE_EVENT")
         if delay is None:
             raise TypeError('delay must not be None')
         timer = self.call_at(self.time() + delay, callback, *args,
@@ -1943,10 +1945,10 @@ class BaseEventLoop(events.AbstractEventLoop):
         schedules the resulting callbacks, and finally schedules
         'call_later' callbacks.
         """
-
         sched_count = len(self._scheduled)
+        logger.warning("_run_once BASE_EVENTS")
         if (sched_count > _MIN_SCHEDULED_TIMER_HANDLES and
-            self._timer_cancelled_count / sched_count >
+            self._timer_cancelled_count / sched_count > 
                 _MIN_CANCELLED_TIMER_HANDLES_FRACTION):
             # Remove delayed calls that were cancelled if their number
             # is too high
@@ -1968,6 +1970,7 @@ class BaseEventLoop(events.AbstractEventLoop):
                 handle._scheduled = False
 
         timeout = None
+        logger.warning(self._ready)
         if self._ready or self._stopping:
             timeout = 0
         elif self._scheduled:
@@ -1977,8 +1980,9 @@ class BaseEventLoop(events.AbstractEventLoop):
                 timeout = MAXIMUM_SELECT_TIMEOUT
             elif timeout < 0:
                 timeout = 0
-
+        logger.warning(timeout)
         event_list = self._selector.select(timeout)
+        logger.warning(event_list)
         self._process_events(event_list)
         # Needed to break cycles when an exception occurs.
         event_list = None

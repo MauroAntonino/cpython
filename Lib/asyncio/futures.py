@@ -14,6 +14,7 @@ from . import base_futures
 from . import events
 from . import exceptions
 from . import format_helpers
+from .log import logger
 
 
 isfuture = base_futures.isfuture
@@ -208,6 +209,7 @@ class Future:
         CancelledError.  If the future isn't done yet, raises
         InvalidStateError.
         """
+        logger.warning("exception")
         if self._state == _CANCELLED:
             exc = self._make_cancelled_error()
             raise exc
@@ -223,6 +225,9 @@ class Future:
         the future is already done when this is called, the callback is
         scheduled with call_soon.
         """
+        logger.warning("add_done_callback FUTURES")
+        logger.warning(self._state != _PENDING)
+        logger.warning(self._state)
         if self._state != _PENDING:
             self._loop.call_soon(fn, self, context=context)
         else:
@@ -253,6 +258,7 @@ class Future:
         If the future is already done when this method is called, raises
         InvalidStateError.
         """
+        logger.warning("set_result FUTURES")
         if self._state != _PENDING:
             raise exceptions.InvalidStateError(f'{self._state}: {self!r}')
         self._result = result
@@ -265,6 +271,7 @@ class Future:
         If the future is already done when this method is called, raises
         InvalidStateError.
         """
+        logger.warning("set_exception FUTURES")
         if self._state != _PENDING:
             raise exceptions.InvalidStateError(f'{self._state}: {self!r}')
         if isinstance(exception, type):
